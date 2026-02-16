@@ -9,10 +9,11 @@ import pandas as pd
 # All store names for tracking
 ALL_STORES = [
     'Jenkins', 'Neon', 'Harlan 1', 'Harlan 2', 'Hyden', 'PMM', 'Isom', 
-    'Whitesburg', 'Hazard 2', 'Ermine', 'Hindman 2', 
-    'Hindman 1', 'Martin', 'Jackson', 'Hazard 3', 'Dryfork', 'Pound', 'Catnip (Nicholasville)', 'Marrowbone', 'Elkhorn City', 'Chloe', 
+    'Whitesburg', 'Hazard 2', 'PMG', 'Ermine (Arbys)', 'Hindman 2 (Arbys)', 
+    'Hindman 1', 'Martin', 'Jackson', 'Hazard 3', 'Dryfork', 'Pound', 
+    'Nicholasville', 'Catnip', 'Marrowbone', 'Elkhorn City', 'Chloe', 
     'Caney', 'Belfrey', 'Phelps', 'Virgie', 'Harold', 'Allen', 'Goody', 
-    'Zebulon', 'Pikeville', 'South', 'North', 'Prestonsburg 1', 'Ivel', 
+    'Zebulon', 'Pikeville South', 'North', 'Prestonsburg 1', 'Ivel', 
     'Justiceville', 'Salyersville', 'Grundy', 'West Liberty', 
     'Prestonsburg 2', 'Prestonsburg 3'
 ]
@@ -103,8 +104,8 @@ def generate_it_daily_report(active, closed):
     # Add unassigned section first
     unassigned = active[active['Assignee'].isna() | (active['Assignee'] == '')]
     if len(unassigned) > 0:
-        active_sheet_data.append(['UNASSIGNED', '', '', '', '', '', ''])
-        active_sheet_data.append(['Ticket ID', 'Request', 'Requester', 'Priority', 'Category', 'Created Date', 'Assignee'])
+        active_sheet_data.append(['UNASSIGNED', '', '', '', '', '', '', ''])
+        active_sheet_data.append(['Ticket ID', 'Request', 'Requester', 'Priority', 'Category', 'Collaborators', 'Created Date', 'Assignee'])
         for _, ticket in unassigned.iterrows():
             # Convert date to string to avoid timezone issues
             created_date = str(ticket.get('Created Date', ''))[:19] if pd.notna(ticket.get('Created Date', '')) else ''
@@ -115,18 +116,19 @@ def generate_it_daily_report(active, closed):
                 ticket.get('Requester', ''),
                 ticket.get('Priority', ''),
                 ticket.get('Category', ''),
+                ticket.get('Collaborators', ''),
                 created_date,
                 'UNASSIGNED'
             ])
-        active_sheet_data.append(['', '', '', '', '', '', ''])  # Blank row
+        active_sheet_data.append(['', '', '', '', '', '', '', ''])  # Blank row
     
     # Add each assignee's section
     assigned_active = active[active['Assignee'].notna() & (active['Assignee'] != '')]
     for assignee in sorted(assigned_active['Assignee'].unique()):
         assignee_tickets = assigned_active[assigned_active['Assignee'] == assignee]
         
-        active_sheet_data.append([assignee, '', '', '', '', '', ''])
-        active_sheet_data.append(['Ticket ID', 'Request', 'Requester', 'Priority', 'Category', 'Created Date', 'Assignee'])
+        active_sheet_data.append([assignee, '', '', '', '', '', '', ''])
+        active_sheet_data.append(['Ticket ID', 'Request', 'Requester', 'Priority', 'Category', 'Collaborators', 'Created Date', 'Assignee'])
         
         for _, ticket in assignee_tickets.iterrows():
             # Convert date to string to avoid timezone issues
@@ -138,10 +140,11 @@ def generate_it_daily_report(active, closed):
                 ticket.get('Requester', ''),
                 ticket.get('Priority', ''),
                 ticket.get('Category', ''),
+                ticket.get('Collaborators', ''),
                 created_date,
                 assignee
             ])
-        active_sheet_data.append(['', '', '', '', '', '', ''])  # Blank row
+        active_sheet_data.append(['', '', '', '', '', '', '', ''])  # Blank row
     
     # Write to Excel
     active_df = pd.DataFrame(active_sheet_data)
@@ -163,13 +166,14 @@ def generate_it_daily_report(active, closed):
     worksheet.column_dimensions['C'].width = 20  # Requester
     worksheet.column_dimensions['D'].width = 12  # Priority
     worksheet.column_dimensions['E'].width = 20  # Category
-    worksheet.column_dimensions['F'].width = 20  # Created Date
-    worksheet.column_dimensions['G'].width = 18  # Assignee
+    worksheet.column_dimensions['F'].width = 20  # Collaborators
+    worksheet.column_dimensions['G'].width = 20  # Created Date
+    worksheet.column_dimensions['H'].width = 18  # Assignee
     
     # Apply formatting to all cells
     for row in range(1, len(active_sheet_data) + 1):
         # First pass: apply alignment to all cells
-        for col in range(1, 8):
+        for col in range(1, 9):  # Updated to 9 columns
             cell = worksheet.cell(row, col)
             # Column B (Request) gets wrap text, others don't
             if col == 2:  # Request column
@@ -178,9 +182,9 @@ def generate_it_daily_report(active, closed):
                 cell.alignment = top_left_align
         
         # Second pass: apply highlighting and other formatting
-        cell_value = worksheet.cell(row, 7).value  # Column G (Assignee)
+        cell_value = worksheet.cell(row, 8).value  # Column H (Assignee) - updated from 7 to 8
         if cell_value == 'UNASSIGNED' or (row > 1 and worksheet.cell(row, 1).value == 'UNASSIGNED'):
-            for col in range(1, 8):
+            for col in range(1, 9):  # Updated to 9 columns
                 cell = worksheet.cell(row, col)
                 cell.fill = yellow_fill
                 # Reapply alignment after fill
@@ -206,8 +210,8 @@ def generate_it_daily_report(active, closed):
         for assignee in sorted(assigned_closed['Assignee'].unique()):
             assignee_tickets = assigned_closed[assigned_closed['Assignee'] == assignee]
             
-            closed_sheet_data.append([assignee, '', '', '', '', '', '', ''])
-            closed_sheet_data.append(['Ticket ID', 'Request', 'Requester', 'Priority', 'Category', 'Created Date', 'Last Modified Date', 'Assignee'])
+            closed_sheet_data.append([assignee, '', '', '', '', '', '', '', ''])
+            closed_sheet_data.append(['Ticket ID', 'Request', 'Requester', 'Priority', 'Category', 'Collaborators', 'Created Date', 'Last Modified Date', 'Assignee'])
             
             for _, ticket in assignee_tickets.iterrows():
                 # Convert dates to strings to avoid timezone issues
@@ -220,11 +224,12 @@ def generate_it_daily_report(active, closed):
                     ticket.get('Requester', ''),
                     ticket.get('Priority', ''),
                     ticket.get('Category', ''),
+                    ticket.get('Collaborators', ''),
                     created_date,
                     modified_date,
                     assignee
                 ])
-            closed_sheet_data.append(['', '', '', '', '', '', '', ''])  # Blank row
+            closed_sheet_data.append(['', '', '', '', '', '', '', '', ''])  # Blank row
     
     closed_df = pd.DataFrame(closed_sheet_data)
     closed_df.to_excel(writer, sheet_name='Closed Tickets', index=False, header=False)
@@ -242,13 +247,14 @@ def generate_it_daily_report(active, closed):
     worksheet_closed.column_dimensions['C'].width = 20  # Requester
     worksheet_closed.column_dimensions['D'].width = 12  # Priority
     worksheet_closed.column_dimensions['E'].width = 20  # Category
-    worksheet_closed.column_dimensions['F'].width = 20  # Created Date
-    worksheet_closed.column_dimensions['G'].width = 20  # Last Modified Date
-    worksheet_closed.column_dimensions['H'].width = 18  # Assignee
+    worksheet_closed.column_dimensions['F'].width = 20  # Collaborators
+    worksheet_closed.column_dimensions['G'].width = 20  # Created Date
+    worksheet_closed.column_dimensions['H'].width = 20  # Last Modified Date
+    worksheet_closed.column_dimensions['I'].width = 18  # Assignee
     
     # Apply formatting to all cells
     for row in range(1, len(closed_sheet_data) + 1):
-        for col in range(1, 9):
+        for col in range(1, 10):  # Updated to 10 columns
             cell = worksheet_closed.cell(row, col)
             # Column B (Request) gets wrap text, others don't
             if col == 2:  # Request column
