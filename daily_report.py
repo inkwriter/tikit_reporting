@@ -15,7 +15,7 @@ ALL_STORES = [
     'Caney', 'Belfrey', 'Phelps', 'Virgie', 'Harold', 'Allen', 'Goody', 
     'Zebulon', 'Pikeville South', 'North', 'Prestonsburg 1', 'Ivel', 
     'Justiceville', 'Salyersville', 'Grundy', 'West Liberty', 
-    'Prestonsburg 2', 'Prestonsburg 3'
+    'Prestonsburg 2', 'Prestonsburg 23'
 ]
 
 def load_and_process_data():

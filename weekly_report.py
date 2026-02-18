@@ -112,7 +112,7 @@ def generate_weekly_analysis_pdf(all_tickets):
     if len(store_counts) > 0:
         plt.figure(figsize=(10, 8))
         colors_pie = sns.color_palette("Set3", len(store_counts))
-        plt.pie(store_counts.values, labels=store_counts.index, autopct='%1.1f%%',
+        plt.pie(store_counts.values, labels=store_counts.index, autopct='%1.0f%%',
                 colors=colors_pie, startangle=90)
         plt.title('Top 10 Stores - Closed Tickets (Last 7 Days)', fontsize=16, fontweight='bold')
         plt.tight_layout()
