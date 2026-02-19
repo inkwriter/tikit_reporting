@@ -4,6 +4,7 @@ IT Daily Report Generator
 Generates: IT_Daily_Report.xlsx with 4 tabs
 """
 
+import os
 import pandas as pd
 
 # All store names for tracking
@@ -34,7 +35,7 @@ def load_and_process_data():
     
     # Filter closed to last 7 days using Last Modified Date
     closed['Last Modified Date'] = pd.to_datetime(closed['Last Modified Date'], errors='coerce', utc=True)
-    seven_days_ago = pd.Timestamp.now(tz='UTC') - pd.Timedelta(days=7)
+    seven_days_ago = (pd.Timestamp.now(tz='UTC') - pd.Timedelta(days=7)).normalize()  # midnight 7 days ago
     closed = closed[closed['Last Modified Date'] >= seven_days_ago]
     
     # Remove timezone info from all datetime columns to avoid Excel issues
@@ -73,26 +74,48 @@ def generate_it_daily_report(active, closed):
     filename = 'IT_Daily_Report.xlsx'
     writer = pd.ExcelWriter(filename, engine='openpyxl')
     
-    # ========== TAB 1: ASSIGNEE SUMMARY ==========
+    # ========== TAB 1: ASSIGNEE SUMMARY (ACCUMULATING) ==========
     print("\n📊 Creating Tab 1: Assignee Summary...")
+    
+    today_str = pd.Timestamp.now().strftime('%m-%d-%Y')
     
     all_for_summary = pd.concat([active, closed], ignore_index=True)
     assigned = all_for_summary[all_for_summary['Assignee'].notna() & (all_for_summary['Assignee'] != '')]
     
-    summary_data = []
+    today_rows = []
     for assignee in sorted(assigned['Assignee'].unique()):
         assignee_tickets = assigned[assigned['Assignee'] == assignee]
         active_count = len(assignee_tickets[assignee_tickets['Status_Type'] == 'Active'])
         closed_count = len(assignee_tickets[assignee_tickets['Status_Type'] == 'Closed'])
-        
-        summary_data.append({
+        today_rows.append({
+            'Date': today_str,
             'Assignee': assignee,
             'Active Tickets': active_count,
             'Closed (Last 7 Days)': closed_count,
             'Total': active_count + closed_count
         })
+    today_df = pd.DataFrame(today_rows)
     
-    summary_df = pd.DataFrame(summary_data)
+    # Load existing history from the report file if it exists
+    existing_history = None
+    if os.path.exists(filename):
+        try:
+            existing_history = pd.read_excel(filename, sheet_name='Assignee Summary')
+            # Handle old format without Date column - add it
+            if 'Date' not in existing_history.columns:
+                existing_history.insert(0, 'Date', '')
+            print(f"✔ Loaded existing Assignee Summary history ({len(existing_history)} rows)")
+        except Exception as e:
+            print(f"  Could not load existing history: {e}")
+            existing_history = None
+    
+    if existing_history is not None and len(existing_history) > 0:
+        # Add a blank separator row between previous data and today's data
+        blank_row = pd.DataFrame([{col: '' for col in existing_history.columns}])
+        summary_df = pd.concat([existing_history, blank_row, today_df], ignore_index=True)
+    else:
+        summary_df = today_df
+    
     summary_df.to_excel(writer, sheet_name='Assignee Summary', index=False)
     
     # ========== TAB 2: ACTIVE TICKETS (SEPARATED BY ASSIGNEE) ==========
