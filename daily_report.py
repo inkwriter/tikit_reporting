@@ -113,10 +113,10 @@ def generate_it_daily_report(active, closed):
             print(f"  Could not load existing history: {e}")
             existing_history = None
 
-    # Now build the full summary dataframe
+    # Now build the full summary dataframe (newest data at the top)
     if existing_history is not None and len(existing_history) > 0:
-        blank_row = pd.DataFrame([{col: '' for col in existing_history.columns}])
-        summary_df = pd.concat([existing_history, blank_row, today_df], ignore_index=True)
+        blank_row = pd.DataFrame([{col: '' for col in today_df.columns}])
+        summary_df = pd.concat([today_df, blank_row, existing_history], ignore_index=True)
     else:
         summary_df = today_df
 
